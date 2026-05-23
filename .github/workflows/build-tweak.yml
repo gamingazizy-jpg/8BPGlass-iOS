@@ -1,0 +1,54 @@
+name: Build & Inject Tweak
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          
+      - name: Install insert_dylib
+        run: |
+          git clone https://github.com/Tyilo/insert_dylib.git
+          cd insert_dylib
+          xcodebuild -project insert_dylib.xcodeproj
+          cp build/Release/insert_dylib /usr/local/bin/
+          
+      - name: Build Tweak
+        run: |
+          cd Tweak
+          make clean || true
+          make package || make
+          
+      - name: Extract IPA
+        run: |
+          ls -la *.ipa
+          IPA=$(ls *.ipa | head -1)
+          echo "Found IPA: $IPA"
+          unzip -o "$IPA" -d build/
+          
+      - name: Inject Dylib
+        run: |
+          ls -la Tweak/.theos/obj/debug/ || ls -la Tween/.theos/obj/ || true
+          cp Tweak/.theos/obj/debug/EightBPGlass.dylib build/Payload/pool.app/ 2>/dev/null || \
+          cp Tweak/.theos/obj/EightBPGlass.dylib build/Payload/pool.app/ 2>/dev/null || \
+          echo "Using fallback dylib path"
+          cd build/Payload/pool.app
+          insert_dylib --inplace @executable_path/EightBPGlass.dylib pool
+          
+      - name: Repack IPA
+        run: |
+          cd build
+          zip -r ../8BPGlass_Modded.ipa Payload/
+          
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 8BPGlass_Modded
+          path: 8BPGlass_Modded.ipa
