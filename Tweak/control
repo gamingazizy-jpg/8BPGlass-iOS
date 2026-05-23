@@ -1,0 +1,9 @@
+Package: com.example.8bpglass
+Name: 8BP Glass
+Depends: mobilesubstrate
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: 8 Ball Pool prediction overlay
+Maintainer: 8BP Glass
+Author: 8BP Glass
+Section: Tweaks
